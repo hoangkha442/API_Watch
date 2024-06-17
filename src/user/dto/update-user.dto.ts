@@ -1,13 +1,8 @@
 import { ApiProperty } from "@nestjs/swagger"
 import { users_role } from "@prisma/client"
-export enum UserRole {
-    Admin = 'admin',
-    Customer = 'customer',
-}
+
 
 export class updateUserDto {
-    @ApiProperty({ description: 'Email of the user', example: 'user@example.com' })
-    email?: string;
 
     @ApiProperty({ description: 'Password of the user', example: 'Password123!' })
     password?: string;
@@ -49,7 +44,7 @@ export class updateUserWRoleDto {
 
 }
 
-export class updateUserRole extends updateUserDto {
+export class updateUserRole {
     @ApiProperty({ enum: users_role, enumName: 'users_role', description: 'Role of the user', example: users_role.customer })
     role: users_role;
 }

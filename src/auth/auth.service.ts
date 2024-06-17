@@ -53,4 +53,5 @@ export class AuthService {
         }
         throw new HttpException('Email đã tồn tại!', HttpStatus.BAD_REQUEST)
     }
+
 }

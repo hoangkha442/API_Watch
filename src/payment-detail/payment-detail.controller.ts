@@ -1,7 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
 import { PaymentDetailService } from './payment-detail.service';
-import { CreatePaymentDetailDto } from './dto/create-payment-detail.dto';
-import { UpdatePaymentDetailDto } from './dto/update-payment-detail.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -12,6 +10,10 @@ import { AuthGuard } from '@nestjs/passport';
 export class PaymentDetailController {
   constructor(private readonly paymentDetailService: PaymentDetailService) {}
 
+  @Get()
+  findAll(){
+    return this.paymentDetailService.findAll()
+  }
 
   @Get(':id')
   findOne(@Param('id') id: string) {

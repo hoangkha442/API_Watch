@@ -1,4 +1,4 @@
-import {  Injectable } from '@nestjs/common';
+import {  HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { RequestWithUser } from 'src/user/interfaces';
 
@@ -19,6 +19,26 @@ export class OrderDetailService {
         orders: true, 
         products: true
       },
+    });
+  }
+
+  async getAllOrder(userId: number) {
+    const user = await this.prisma.users.findUnique({
+      where: { user_id: userId },
+      select: { role: true },
+    });
+    if (!user || user.role !== 'admin') {
+      throw new HttpException("Bạn không có quyền truy cập!", HttpStatus.FORBIDDEN);
+    }
+    return this.prisma.order_details.findMany({
+      include: {
+        orders: { // Assuming 'order' is the correct relation name
+          include: {
+            users: true // Assuming 'user' is the correct relation name
+          }
+        },
+        products: true // Assuming 'product' is the correct relation name
+      }
     });
   }
 

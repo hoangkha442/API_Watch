@@ -15,11 +15,13 @@ import { ReviewModule } from './review/review.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ShippingDetailsModule } from './shipping-details/shipping-details.module';
 import { PaymentDetailModule } from './payment-detail/payment-detail.module';
+import { CartModule } from './cart/cart.module';
+import { ProductImagesModule } from './product-images/product-images.module';
 
 @Module({
   imports: [AuthModule, UserModule, ConfigModule.forRoot({
     isGlobal: true,
-  }), ProductModule, CategoryModule, SupplierModule, OrderModule, OrderDetailModule, ReviewModule, InventoryModule, ShippingDetailsModule, PaymentDetailModule],
+  }), ProductModule, CategoryModule, SupplierModule, OrderModule, OrderDetailModule, ReviewModule, InventoryModule, ShippingDetailsModule, PaymentDetailModule, CartModule, ProductImagesModule],
   controllers: [AppController],
   providers: [AppService, JwtStrategy, CloudinaryProvider],
 })

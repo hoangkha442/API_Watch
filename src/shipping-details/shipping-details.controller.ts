@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req } from '@nestjs/common';
 import { ShippingDetailsService } from './shipping-details.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { RequestWithUser } from 'src/user/interfaces';
 
 @ApiTags('ThongTinVanChuyen')
 @ApiBearerAuth()
@@ -15,5 +16,10 @@ export class ShippingDetailsController {
     return this.shippingDetailsService.findOne(+id);
   }
 
+  @Get()
+  findAll(@Req() req: RequestWithUser) {
+    const userId = req.user.data.userID;
+    return this.shippingDetailsService.findAll(userId);
+  }
  
 }

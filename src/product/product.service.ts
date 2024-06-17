@@ -18,6 +18,7 @@ export class ProductService {
       throw new HttpException("Bạn không có quyền truy cập!", HttpStatus.FORBIDDEN);
     }
   }
+
   // LẤY DANH SÁCH SẢN PHẨM
   async findAll() {
     let data = await this.prisma.products.findMany()
@@ -46,53 +47,169 @@ export class ProductService {
     return data
   }
 
+  async getTopSellingProducts() {
+    const data = await this.prisma.products.findMany({
+      orderBy: {
+        quantity_sold: 'desc'
+      },
+      take: 5
+    });
+    return data;
+  }
+
+  // Method to find related products
+  async findRelatedProducts(productId: number) {
+    const product = await this.prisma.products.findUnique({
+      where: { product_id: productId },
+    });
+
+    if (!product) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+
+    const relatedProducts = await this.prisma.products.findMany({
+      where: {
+        OR: [
+          { category_id: product.category_id },
+          { supplier_id: product.supplier_id },
+        ],
+        AND: { product_id: { not: productId } }, // Exclude the current product
+      },
+      take: 6,
+    });
+
+    return relatedProducts;
+  }
+
+  async getPopularProducts() {
+    return await this.prisma.products.findMany({
+      orderBy: {
+        popularity_score: 'desc'
+      },
+      take: 10
+    });
+  }
+
+  async getTopPromotionalProducts() {
+    return await this.prisma.products.findMany({
+      where: {
+        promotion_percentage: {
+          gt: 0 // Ensure that only products with promotions are considered
+        }
+      },
+      orderBy: {
+        promotion_percentage: 'desc'
+      },
+      take: 10
+    });
+  }
+
+  // Get the newest products
+  async getNewProducts() {
+    return await this.prisma.products.findMany({
+      orderBy: {
+        creation_date: 'desc'
+      },
+      take: 10 // You can adjust the number to fetch more or less
+    });
+  }
+
   // LẤY CHI TIẾT SẢN PHẨM
   async findOne (id: number){
     const product = await this.prisma.products.findMany({
       where: {
         product_id : id
+      },
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true
       }
     })
     return product;
   }
 
   // TẠO MỚI SẢN PHẨM
-  async create(createProductDto: CreateProductDto, file: Express.Multer.File , userId: number) {
-
+  async create(createProductDto: CreateProductDto, files: Express.Multer.File[] , userId: number) {
     await this.checkAdminRole(userId);
+    
+    // Tạo sản phẩm mới
     const product = await this.prisma.products.create({
-      data: {...createProductDto, price: createProductDto.price * 1, quantity_in_stock: createProductDto.quantity_in_stock *1, category_id: createProductDto.category_id * 1, supplier_id: createProductDto.supplier_id * 1}
+      data: {
+        product_name: createProductDto.product_name,
+        description: createProductDto.description,
+        price: createProductDto.price,
+        quantity_in_stock: createProductDto.quantity_in_stock,
+        category_id: createProductDto.category_id,
+        supplier_id: createProductDto.supplier_id
+      }
     });
 
-    if (file) {
-      await this.prisma.products.update({
-        where: { product_id: product.product_id },
-        data: { product_picture: file.filename }
-      });
+    // Lưu hình ảnh sản phẩm
+    if (files && files.length > 0) {
+      for (const file of files) {
+        await this.prisma.product_images.create({
+          data: {
+            product_id: product.product_id,
+            image_url: file.filename,
+          },
+        });
+      }
     }
-    return 'Thêm sản phẩm thành công!'
+    return 'Thêm sản phẩm thành công!';
   }
 
-
-  // CẬP NHẬT SẢN PHẨM
-  async update(id: number, updateProductDto: UpdateProductDto, userId: number) {
-    await this.checkAdminRole(userId);
-    await this.prisma.products.update({
-      where: { product_id: id },
-      data: updateProductDto
+  async updateProduct(productId: number, updateProductDto: UpdateProductDto) {
+    const existingProduct = await this.prisma.products.findUnique({
+      where: { product_id: productId },
     });
-    return `Cập nhật thành công!`;
+
+    if (!existingProduct) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+
+    const { image_urls, ...productData } = updateProductDto;
+
+    const updatedProduct = await this.prisma.products.update({
+      where: { product_id: productId },
+      data: productData,
+    });
+
+    // Handle product images separately
+    if (image_urls && image_urls.length > 0) {
+      await this.prisma.product_images.deleteMany({
+        where: { product_id: productId },
+      });
+
+      for (const url of image_urls) {
+        await this.prisma.product_images.create({
+          data: {
+            product_id: productId,
+            image_url: url,
+          },
+        });
+      }
+    }
+
+    return updatedProduct;
   }
-  
 
-  // CẬP NHẬT HÌNH ẢNH SẢN PHẨM
-  async updatePictue(id: number ,file: Express.Multer.File, userId: number){
-    await this.checkAdminRole(userId);
-    await this.prisma.products.update({
-      where: { product_id: id },
-      data: {product_picture: file.filename}
-    });
-    return 'Cập nhật ảnh sản phẩm thành công!'
+  async updateProductPictures(productId: number, files: Express.Multer.File[]) {
+    if (files && files.length > 0) {
+      await this.prisma.product_images.deleteMany({
+        where: { product_id: productId },
+      });
+
+      for (const file of files) {
+        await this.prisma.product_images.create({
+          data: {
+            product_id: productId,
+            image_url: file.filename,
+          },
+        });
+      }
+    }
+    return 'Cập nhật hình ảnh sản phẩm thành công!';
   }
 
   // ẨN / HIỆN SẢN PHẨM

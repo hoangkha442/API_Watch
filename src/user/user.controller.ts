@@ -30,6 +30,22 @@ export class UserController {
     const sizePage = parseInt(pageSize, 10) || 10;
     return this.userService.pagination(pageNumber, sizePage, userId);
   }
+
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('pagination-admin')
+  @ApiQuery({ name: 'page', type: Number, required: true, description: 'Page number for pagination' })
+  @ApiQuery({ name: 'pageSize', type: Number, required: true, description: 'Number of items per page' })
+  paginationAdmin(
+    @Query('page') page: string,
+    @Query('pageSize') pageSize: string,
+    @Req() req: RequestWithUser
+  ) {
+    const userId = req.user.data.userID;
+    const pageNumber = parseInt(page, 10) || 1;
+    const sizePage = parseInt(pageSize, 10) || 10;
+    return this.userService.paginationAdmin(pageNumber, sizePage, userId);
+  }
     
   // CREATE USER
   @ApiBearerAuth()
@@ -57,13 +73,22 @@ export class UserController {
     const userId = req.user.data.userID;
     return this.userService.findName(uName, userId)
   }
-
+  
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Get('my-info')
+  async getMyInfoByToken(@Req() req: RequestWithUser) {
+    const userId = req.user.data.userID;
+    return this.userService.getUserById(userId);
+  }
 
   // FIND USER BY ID
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.userService.findOne(+id);
   }
+
+  
 
   // UPDATE USER
   @Put('update-user/:id')

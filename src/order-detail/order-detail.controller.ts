@@ -27,4 +27,11 @@ export class OrderDetailController {
     return this.orderDetailService.getOrderDetailsByOrderId(orderId);
   }
 
+  // LẤY CHI TIẾT ĐƠN HÀNG THÔNG QUA OrderID
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async getAllOrder(@Req() req: RequestWithUser){
+    const userId = req.user.data.userID;
+    return this.orderDetailService.getAllOrder(userId);
+  }
 }

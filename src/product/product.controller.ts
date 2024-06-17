@@ -1,13 +1,12 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Req, UseGuards, Put, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, Req, UseGuards, Put, UseInterceptors, UploadedFiles, HttpException, HttpStatus } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { RequestWithUser } from 'src/user/interfaces';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-
 
 @ApiTags('QuanLySanPham')
 @Controller('product')
@@ -41,11 +40,35 @@ export class ProductController {
     return this.productService.productName(prdName);
   }
 
+  @Get('/top-selling')
+  getTopSellingProducts() {
+    return this.productService.getTopSellingProducts();
+  }
+
+  @Get('/related-products/:id')
+  findRelatedProducts(@Param('id') id: string) {
+    return this.productService.findRelatedProducts(+id);
+  }
+
+  @Get('/popular')
+  getPopularProducts() {
+    return this.productService.getPopularProducts();
+  }
+
+  @Get('/top-promotions')
+  getTopPromotionalProducts() {
+    return this.productService.getTopPromotionalProducts();
+  }
+
+  @Get('/new-products')
+  getNewProducts() {
+    return this.productService.getNewProducts();
+  }
 
   @ApiBearerAuth()
   @UseGuards(AuthGuard("jwt"))
   @Post()
-  @UseInterceptors(FileInterceptor('product_picture', {
+  @UseInterceptors(FilesInterceptor('product_picture', 10, {
     storage: diskStorage({
       destination: process.cwd() + '/public/img/prds',
       filename: (req, file, callback) => { 
@@ -55,27 +78,14 @@ export class ProductController {
   }))
   create(
     @Body() createProductDto: CreateProductDto, 
-    @UploadedFile() file: Express.Multer.File, 
+    @UploadedFiles() files: Express.Multer.File[], 
     @Req() req: RequestWithUser) {
     const userId = req.user.data.userID;
-    return this.productService.create(createProductDto,file, userId);
+    return this.productService.create(createProductDto, files, userId);
   }
 
-  
-
-  
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
   @Put(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Req() req: RequestWithUser) {
-    const userId = req.user.data.userID;
-    return this.productService.update(+id, updateProductDto, userId);
-  }
-
-  @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
-  @Put('/picture/:id')
-  @UseInterceptors(FileInterceptor('product_picture', {
+  @UseInterceptors(FilesInterceptor('product_pictures', 10, {
     storage: diskStorage({
       destination: process.cwd() + '/public/img/prds',
       filename: (req, file, callback) => { 
@@ -83,14 +93,24 @@ export class ProductController {
       }
     })
   }))
-  updatePictue(@Param('id') id: string,
-  @UploadedFile() file: Express.Multer.File, 
-   @Req() req: RequestWithUser) {
-    const userId = req.user.data.userID;
-    return this.productService.updatePictue(+id, file, userId);
+  async update(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    const productId = parseInt(id, 10);
+    if (isNaN(productId)) {
+      throw new HttpException('Invalid product ID', HttpStatus.BAD_REQUEST);
+    }
+    await this.productService.updateProduct(productId, updateProductDto);
+
+    if (files && files.length > 0) {
+      await this.productService.updateProductPictures(productId, files);
+    }
+
+    return { message: 'Cập nhật sản phẩm thành công!' };
   }
-
-
+0
   @ApiBearerAuth()
   @UseGuards(AuthGuard("jwt"))
   @Put('hidden-product/:id')
@@ -107,4 +127,3 @@ export class ProductController {
     return this.productService.remove(+id, userId);
   }
 }
-

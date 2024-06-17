@@ -4,11 +4,12 @@ import { PrismaClient, users } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import {updateUserDto, updateUserRole } from './dto/update-user.dto';
 import { RequestWithUser } from './interfaces';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
   prisma = new PrismaClient()
-
+  constructor(private jwtService: JwtService) {}
   // GLOBAL FUNCTIONS
   async checkAdminRole(userId: number) {
     const user = await this.prisma.users.findUnique({
@@ -21,21 +22,65 @@ export class UserService {
   }
 
 
-  // PHÂN TRANG
-  async pagination(page: number, pageSize: number, userId: number): Promise<{ data: users[], totalPage: number }> {
-
-    await this.checkAdminRole(userId);
-    const skipCount = (page - 1) * pageSize;
-    const users = await this.prisma.users.findMany({
-      skip: skipCount,
-      take: pageSize
+  // Function to get user info by token
+  async getMyInfoByToken(requestingUserID: number): Promise<users> {
+    const user = await this.prisma.users.findUnique({
+      where: { user_id: requestingUserID },
     });
 
-    const totalUsers = await this.prisma.users.count();
-    const totalPage = Math.ceil(totalUsers / pageSize);
+    if (!user) {
+      throw new HttpException('Không tìm thấy tài khoản', HttpStatus.NOT_FOUND);
+    }
 
-    return { data: users, totalPage };
+    return user;
   }
+
+  // PHÂN TRANG
+  
+  async pagination(page: number, pageSize: number, userId: number): Promise<{ data: users[], totalPage: number }> {
+  await this.checkAdminRole(userId); // Assuming this checks if the user has the right to paginate
+
+  const skipCount = (page - 1) * pageSize;
+
+  // Use Prisma's findMany to get a page of users with role 'customer'
+  const data = await this.prisma.users.findMany({
+    where: { role: 'customer' }, // Ensures consistency in filtering for both count and data fetch
+    skip: skipCount,
+    take: pageSize,
+  });
+
+  // Ensure the count reflects the same filter criteria used to fetch the data
+  const totalUsers = await this.prisma.users.count({
+    where: { role: 'customer' },
+  });
+
+  const totalPage = Math.ceil(totalUsers / pageSize);
+
+  return { data, totalPage };
+}
+
+async paginationAdmin(page: number, pageSize: number, userId: number): Promise<{ data: users[], totalPage: number }> {
+  await this.checkAdminRole(userId); // Assuming this checks if the user has the right to paginate
+
+  const skipCount = (page - 1) * pageSize;
+
+  // Use Prisma's findMany to get a page of users with role 'customer'
+  const data = await this.prisma.users.findMany({
+    where: { role: 'admin' }, // Ensures consistency in filtering for both count and data fetch
+    skip: skipCount,
+    take: pageSize,
+  });
+
+  // Ensure the count reflects the same filter criteria used to fetch the data
+  const totalUsers = await this.prisma.users.count({
+    where: { role: 'admin' },
+  });
+
+  const totalPage = Math.ceil(totalUsers / pageSize);
+
+  return { data, totalPage };
+}
+
   
 
   // TẠO MỚI USER
@@ -72,20 +117,31 @@ export class UserService {
     })
     return data
   }
+  
+  async getUserById(userId: number): Promise<any> {
+    const user = await this.prisma.users.findUnique({
+        where: { user_id: userId }
+    });
+    if (!user) {
+        throw new Error('User not found');
+    }
+    return user;
+}
 
   // XEM CHI TIẾT NGƯỜI DÙNG
   async findOne(id: number) {
     const getUser = await this.prisma.users.findUnique({
       where:{
-        user_id: id
+        user_id: id * 1
       }
     })
     if(!getUser){
       return 'Không tìm thấy người dùng!';
     }
     return getUser;
-    
   }
+
+  
 
   // CẬP NHẬT NGƯỜI DÙNG
   async update(id: number, updateUserDto: updateUserDto) {
@@ -105,11 +161,6 @@ export class UserService {
     }
     console.log('updateUserDto.password: ', updateUserDto.password);
 
-    // console.log('updateUserDto: ', updateUserDto);
-    // await this.prisma.users.update({
-    //   where: { user_id: id * 1},
-    //   data: updateUserDto
-    // });
 
     await this.prisma.users.update({
       where: { user_id: id * 1},
@@ -122,10 +173,6 @@ export class UserService {
   // Update authorization by admin
   async updateUserByAdmin(id: number, updateUserRole: updateUserRole, userId: number) {
     await this.checkAdminRole(userId);
-
-    if (updateUserRole.password) {
-      updateUserRole.password = await bcrypt.hash(updateUserRole.password, 10);
-    }
 
     await this.prisma.users.update({
       where: { user_id: id * 1 },
