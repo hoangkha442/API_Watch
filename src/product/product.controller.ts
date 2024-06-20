@@ -1,97 +1,114 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, Req, UseGuards, Put, UseInterceptors, UploadedFiles, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UploadedFiles, UseGuards, HttpException, HttpStatus, UseInterceptors, Req, Query, UploadedFile } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { RequestWithUser } from 'src/user/interfaces';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { AuthGuard } from '@nestjs/passport';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { RequestWithUser } from 'src/user/interfaces';
 
-@ApiTags('QuanLySanPham')
+@ApiTags('Product')
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  findAll() {
+  async findAll() {
     return this.productService.findAll();
   }
 
   @Get('/get-product/:id')
-  findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string) {
     return this.productService.findOne(+id);
   }
 
   @Get('pagination')
-  @ApiQuery({ name: 'page', type: Number, required: true, description: 'Page number for pagination' })
-  @ApiQuery({ name: 'pageSize', type: Number, required: true, description: 'Number of items per page' })
-  getPagination(
-    @Query('page') page: string,
-    @Query('pageSize') pageSize: string,
-  ) {
+  async getPagination(@Query('page') page: string, @Query('pageSize') pageSize: string) {
     const pageNumber = parseInt(page, 10) || 1;
     const sizePage = parseInt(pageSize, 10) || 10;
     return this.productService.getPagination(pageNumber, sizePage);
   }
 
   @Get('/search/:prdName')
-  productName(@Param('prdName') prdName: string) {
+  async productName(@Param('prdName') prdName: string) {
     return this.productService.productName(prdName);
   }
 
   @Get('/top-selling')
-  getTopSellingProducts() {
+  async getTopSellingProducts() {
     return this.productService.getTopSellingProducts();
   }
 
   @Get('/related-products/:id')
-  findRelatedProducts(@Param('id') id: string) {
+  async findRelatedProducts(@Param('id') id: string) {
     return this.productService.findRelatedProducts(+id);
   }
 
   @Get('/popular')
-  getPopularProducts() {
+  async getPopularProducts() {
     return this.productService.getPopularProducts();
   }
 
   @Get('/top-promotions')
-  getTopPromotionalProducts() {
+  async getTopPromotionalProducts() {
     return this.productService.getTopPromotionalProducts();
   }
 
   @Get('/new-products')
-  getNewProducts() {
+  async getNewProducts() {
     return this.productService.getNewProducts();
   }
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
+  @UseGuards(AuthGuard('jwt'))
   @Post()
   @UseInterceptors(FilesInterceptor('product_picture', 10, {
     storage: diskStorage({
       destination: process.cwd() + '/public/img/prds',
-      filename: (req, file, callback) => { 
-        callback(null, new Date().getTime() + '_' + file.originalname);
-      }
-    })
+      filename: (req, file, callback) => {
+        callback(null, `${Date.now()}_${file.originalname}`);
+      },
+    }),
   }))
-  create(
-    @Body() createProductDto: CreateProductDto, 
-    @UploadedFiles() files: Express.Multer.File[], 
-    @Req() req: RequestWithUser) {
+  async create(
+    @Body() createProductDto: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: RequestWithUser,
+  ) {
     const userId = req.user.data.userID;
     return this.productService.create(createProductDto, files, userId);
   }
 
-  @Put(':id')
-  @UseInterceptors(FilesInterceptor('product_pictures', 10, {
+  // New endpoint to handle image uploads separately
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/picture')
+  @UseInterceptors(FilesInterceptor('product_picture', 10, {
     storage: diskStorage({
       destination: process.cwd() + '/public/img/prds',
-      filename: (req, file, callback) => { 
-        callback(null, new Date().getTime() + '_' + file.originalname);
-      }
-    })
+      filename: (req, file, callback) => {
+        callback(null, `${Date.now()}_${file.originalname}`);
+      },
+    }),
+  }))
+  async uploadPictures(
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    if (!files || files.length === 0) {
+      throw new HttpException('No files uploaded', HttpStatus.BAD_REQUEST);
+    }
+    return this.productService.uploadProductPictures(files);
+  }
+
+  @Put(':id')
+  @UseInterceptors(FilesInterceptor('product_picture', 10, {
+    storage: diskStorage({
+      destination: process.cwd() + '/public/img/prds',
+      filename: (req, file, callback) => {
+        callback(null, `${Date.now()}_${file.originalname}`);
+      },
+    }),
   }))
   async update(
     @Param('id') id: string,
@@ -105,24 +122,24 @@ export class ProductController {
     await this.productService.updateProduct(productId, updateProductDto);
 
     if (files && files.length > 0) {
-      await this.productService.updateProductPictures(productId, files);
+      await this.productService.uploadProductPictures(files);
     }
 
     return { message: 'Cập nhật sản phẩm thành công!' };
   }
-0
+
   @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
+  @UseGuards(AuthGuard('jwt'))
   @Put('hidden-product/:id')
-  hidden(@Param('id') id: string, @Req() req: RequestWithUser) {
+  async hidden(@Param('id') id: string, @Req() req: RequestWithUser) {
     const userId = req.user.data.userID;
     return this.productService.hidden(+id, userId);
   }
 
   @ApiBearerAuth()
-  @UseGuards(AuthGuard("jwt"))
+  @UseGuards(AuthGuard('jwt'))
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
+  async remove(@Param('id') id: string, @Req() req: RequestWithUser) {
     const userId = req.user.data.userID;
     return this.productService.remove(+id, userId);
   }

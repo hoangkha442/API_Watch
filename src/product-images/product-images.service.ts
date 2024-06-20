@@ -1,30 +1,59 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { CreateProductImageDto } from './dto/create-product-image.dto';
 import { UpdateProductImageDto } from './dto/update-product-image.dto';
-import { PrismaClient } from '@prisma/client';
 
 @Injectable()
 export class ProductImagesService {
-  prisma = new PrismaClient()
+  prisma = new PrismaClient();
 
-  create(createProductImageDto: CreateProductImageDto) {
-    return 'This action adds a new productImage';
+  async create(createProductImageDto: CreateProductImageDto) {
+    return await this.prisma.product_images.create({
+      data: createProductImageDto,
+    });
   }
 
-  findAll() {
-    return `This action returns all productImages`;
+  async findAll() {
+    return await this.prisma.product_images.findMany();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} productImage`;
+  async findOne(id: number) {
+    const productImage = await this.prisma.product_images.findUnique({
+      where: { image_id: id },
+    });
+    if (!productImage) {
+      throw new HttpException(`Product image with ID ${id} not found`, HttpStatus.NOT_FOUND);
+    }
+    return productImage;
   }
 
-  update(id: number, updateProductImageDto: UpdateProductImageDto) {
-    return `This action updates a #${id} productImage`;
+  async update(id: number, updateProductImageDto: UpdateProductImageDto) {
+    const existingImage = await this.prisma.product_images.findUnique({
+      where: { image_id: id },
+    });
+
+    if (!existingImage) {
+      throw new HttpException(`Product image with ID ${id} not found`, HttpStatus.NOT_FOUND);
+    }
+
+    return await this.prisma.product_images.update({
+      where: { image_id: id },
+      data: updateProductImageDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} productImage`;
+  async remove(id: number) {
+    const existingImage = await this.prisma.product_images.findUnique({
+      where: { image_id: id },
+    });
+
+    if (!existingImage) {
+      throw new HttpException(`Product image with ID ${id} not found`, HttpStatus.NOT_FOUND);
+    }
+
+    return await this.prisma.product_images.delete({
+      where: { image_id: id },
+    });
   }
 
   async findByProductId(productId: number) {
