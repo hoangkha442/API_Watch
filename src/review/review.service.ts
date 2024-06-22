@@ -21,6 +21,9 @@ export class ReviewService {
       },
       include: {
         users: true
+      },
+      orderBy: {
+        review_date: 'desc'  
       }
     });
   }
