@@ -67,10 +67,10 @@ export class UserController {
   }
 
   // Get user by ID
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.userService.findOne(+id);
+  // }
 
   // Search user by name
   @ApiBearerAuth()

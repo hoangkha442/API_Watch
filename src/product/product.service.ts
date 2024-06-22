@@ -33,6 +33,11 @@ export class ProductService {
       orderBy: {
         creation_date: 'desc',
       },
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
     const totalProducts = await this.prisma.products.count();
     const totalPage = Math.ceil(totalProducts / pageSize);
@@ -55,6 +60,11 @@ export class ProductService {
         quantity_sold: 'desc',
       },
       take: 5,
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 
@@ -76,6 +86,11 @@ export class ProductService {
         AND: { product_id: { not: productId } },
       },
       take: 6,
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 
@@ -85,6 +100,11 @@ export class ProductService {
         popularity_score: 'desc',
       },
       take: 10,
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 
@@ -99,6 +119,11 @@ export class ProductService {
         promotion_percentage: 'desc',
       },
       take: 10,
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 
@@ -108,6 +133,11 @@ export class ProductService {
         creation_date: 'desc',
       },
       take: 10,
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 

@@ -31,7 +31,6 @@ export class UserService {
     if (!user) {
       throw new HttpException('Không tìm thấy tài khoản', HttpStatus.NOT_FOUND);
     }
-
     return user;
   }
 
@@ -44,6 +43,10 @@ export class UserService {
       where: { role: 'customer' },
       skip: skipCount,
       take: pageSize,
+      orderBy: [
+        { is_visible: 'desc' }, // Sort by visibility first
+        { creation_date: 'desc' }, // Then by creation date
+      ],
     });
     const totalUsers = await this.prisma.users.count({
       where: { role: 'customer' },
@@ -55,20 +58,27 @@ export class UserService {
 
   async paginationAdmin(page: number, pageSize: number, userId: number): Promise<{ data: users[], totalPage: number }> {
     await this.checkAdminRole(userId);
-
+  
     const skipCount = (page - 1) * pageSize;
     const data = await this.prisma.users.findMany({
       where: { role: 'admin' },
       skip: skipCount,
       take: pageSize,
+      orderBy: [
+        { is_visible: 'desc' }, // Sort by visibility first
+        { creation_date: 'desc' }, // Then by creation date
+      ],
     });
+    
     const totalUsers = await this.prisma.users.count({
       where: { role: 'admin' },
     });
+  
     const totalPage = Math.ceil(totalUsers / pageSize);
-
+  
     return { data, totalPage };
   }
+  
 
   // Create user
   async create(createUserDto: CreateUserDto, userId: number) {
@@ -88,7 +98,11 @@ export class UserService {
   // Get all users
   async findAll(userId: number): Promise<users[]> {
     await this.checkAdminRole(userId);
-    return await this.prisma.users.findMany();
+    return await this.prisma.users.findMany({ 
+      orderBy: [
+        { is_visible: 'desc' },
+        { creation_date: 'desc' },
+      ],});
   }
 
   // Find user by name
@@ -99,9 +113,23 @@ export class UserService {
         full_name: {
           contains: uName
         }
-      }
+      },
+      orderBy: [
+        { is_visible: 'desc' },
+        { creation_date: 'desc' },
+      ],
     });
     return data;
+  }
+
+  // Get user information
+  async getMyInfo(userId: number): Promise<any> {
+    const getUser = await this.prisma.users.findFirst({
+      where:{
+        user_id: userId
+      }
+    });
+    return getUser;
   }
 
   // Find user by ID
@@ -117,15 +145,7 @@ export class UserService {
     return getUser;
   }
 
-  // Get user information
-  async getMyInfo(userId: number): Promise<any> {
-    const getUser = await this.prisma.users.findFirst({
-      where:{
-        user_id: userId
-      }
-    });
-    return getUser;
-  }
+  
 
   // Update user
   async update(id: number, updateUserDto: updateUserDto) {
@@ -144,7 +164,6 @@ export class UserService {
       where: { user_id: id },
       data: updateUserDto
     });
-  
     return 'Cập nhật thành công!';
   }
 
