@@ -1,54 +1,63 @@
-import { IsInt, IsOptional, IsEnum, IsArray, ValidateNested, IsDateString } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+// src/order/dto/create-order.dto.ts
+import { IsNotEmpty, IsString, IsNumber, IsArray, IsEnum, IsDateString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { orders_status } from '@prisma/client';
-import { CreateOrderDetailDto } from 'src/order-detail/dto/create-order-detail.dto';
-import { CreatePaymentDetailDto } from 'src/payment-detail/dto/create-payment-detail.dto';
-import { CreateShippingDetailDto } from 'src/shipping-details/dto/create-shipping-detail.dto';
-// import { CreateOrderDetailDto } from './create-order-detail.dto';
-// import { OrderStatus } from '@prisma/client';
+
+class CreateOrderDetailDto {
+  @IsNumber()
+  product_id: number;
+
+  @IsNumber()
+  quantity: number;
+
+  @IsNumber()
+  price: number;
+}
+
+class CreatePaymentDetailDto {
+  @IsNumber()
+  amount: number;
+
+  @IsString()
+  payment_method: string;
+
+  @IsString()
+  payment_status: string;
+}
+
+class CreateShippingDetailDto {
+  @IsString()
+  shipping_address: string;
+
+  @IsDateString()
+  estimated_delivery_date: Date;
+}
 
 export class CreateOrderDto {
-  @ApiProperty({ description: 'ID of the company', required: false })
-  @IsInt()
-  @IsOptional()
-  company_id?: number;
+  @IsNumber()
+  company_id: number;
 
-  @ApiProperty({ description: 'Date and time of the order', example: '2024-01-01T00:00:00.000Z' })
   @IsDateString()
-  order_date: string;
+  order_date: Date;
 
-  @ApiProperty({ description: 'Status of the order', enum: orders_status })
   @IsEnum(orders_status)
   status: orders_status;
 
-  @ApiProperty({ description: 'Total amount of the order' })
-  @IsInt()
+  @IsNumber()
   total_amount: number;
 
-  @ApiProperty({ description: 'Details of the order', type: [CreateOrderDetailDto] })
   @IsArray()
+  productIDs: number[];
+
   @ValidateNested({ each: true })
   @Type(() => CreateOrderDetailDto)
   details: CreateOrderDetailDto[];
 
-  
-
-  // @ApiProperty({ type: [CreatePaymentDetailDto] })
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => CreatePaymentDetailDto)
-  // shippingDetail: CreatePaymentDetailDto[];
-
-  // @ApiProperty({ type: [CreateShippingDetailDto] })
-  // @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => CreateShippingDetailDto)
-  // paymentDetail: CreateShippingDetailDto[];
-
-  @ApiProperty({ type: CreatePaymentDetailDto })
+  @ValidateNested()
+  @Type(() => CreatePaymentDetailDto)
   paymentDetail: CreatePaymentDetailDto;
 
-  @ApiProperty({ type: CreateShippingDetailDto })
+  @ValidateNested()
+  @Type(() => CreateShippingDetailDto)
   shippingDetail: CreateShippingDetailDto;
 }

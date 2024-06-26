@@ -22,6 +22,11 @@ export class ProductService {
       orderBy: {
         creation_date: 'desc',
       },
+      include: {
+        product_categories: true,
+        suppliers: true,
+        product_images: true,
+      },
     });
   }
 

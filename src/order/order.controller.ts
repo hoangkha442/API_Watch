@@ -52,10 +52,10 @@ import { CreateMultipleOrdersDto } from './dto/create-multiple-orders.dto';
     }
 
     @Post('create-multiple')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiResponse({ status: HttpStatus.CREATED, description: 'Orders created successfully.' })
-  @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request.' })
-  async createMultipleOrders(@Body() orderData: CreateMultipleOrdersDto, @Req() req: RequestWithUser): Promise<any> {
-    return this.orderService.createMultipleOrders(orderData, req);
-  }
+    @HttpCode(HttpStatus.CREATED)
+    @ApiResponse({ status: HttpStatus.CREATED, description: 'Orders created successfully.' })
+    @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Bad Request.' })
+    async createMultipleOrders(@Body() orderData: CreateMultipleOrdersDto, @Req() req: RequestWithUser): Promise<any> {
+      return this.orderService.createMultipleOrders(orderData, req);
+    }
   }

@@ -17,6 +17,7 @@ export class CartService {
     // Check if product exists
     const product = await this.prisma.products.findUnique({
       where: { product_id: createCartDto.product_id },
+      
     });
 
     if (!product) {
@@ -57,7 +58,11 @@ export class CartService {
     const userId = req.user.data.userID;
     return await this.prisma.cart.findMany({
       where: { user_id: userId },
-      include: { products: true },
+      include: { products: 
+        {
+          include: { product_images : true },
+        }
+       },
     });
   }
 
@@ -110,7 +115,13 @@ export class CartService {
   async getUserCartByUserId(userId: number) {
     return await this.prisma.cart.findMany({
       where: { user_id: userId },
-      include: { products: true },
+      include: {
+        products: {
+          include: {
+            product_images: true, // Include product images
+          },
+        },
+      }
     });
   }
 

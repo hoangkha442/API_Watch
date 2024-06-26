@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, orders_status } from '@prisma/client';
 import { RequestWithUser } from 'src/user/interfaces';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { CreateMultipleOrdersDto } from './dto/create-multiple-orders.dto';
@@ -82,7 +82,7 @@ export class OrderService {
         user_id: requestingUserID,
       },
       include: {
-        users: true
+        users: true,
       }
     });
   }
@@ -98,7 +98,7 @@ export class OrderService {
       select: { role: true }
     });
   
-    if (!requestingUser || requestingUser.role !== 'admin') {
+    if (!requestingUser) {
       throw new HttpException("Bạn không có quyền truy cập!", HttpStatus.FORBIDDEN);
     }
     return this.prisma.orders.update({
@@ -115,13 +115,16 @@ export class OrderService {
 
     const createdOrders = [];
     for (const order of orderData.orders) {
+      const productIDs = order.details.map(detail => detail.product_id);
+
       const createdOrder = await this.prisma.orders.create({
         data: {
           user_id: requestingUserID,
           company_id: order.company_id,
           order_date: new Date(order.order_date),
-          status: order.status,
+          status: order.status as orders_status, // Convert status to orders_status enum
           total_amount: order.total_amount,
+          productIDs: productIDs,
           order_details: {
             create: order.details,
           },
@@ -138,5 +141,6 @@ export class OrderService {
 
     return { message: "Đặt hàng thành công!", orders: createdOrders };
   }
+  
   
 }

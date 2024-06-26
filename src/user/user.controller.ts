@@ -67,10 +67,10 @@ export class UserController {
   }
 
   // Get user by ID
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.userService.findOne(+id);
-  // }
+  @Get('user/:id')
+  findOne(@Param('id') id: string) {
+    return this.userService.findOne(+id);
+  }
 
   // Search user by name
   @ApiBearerAuth()
@@ -166,4 +166,5 @@ export class UserController {
   updateAvatar(@UploadedFile() file : Express.Multer.File, @Req() req: RequestWithUser){
     return this.userService.uploadAvatar(file, req);
   }
+
 }

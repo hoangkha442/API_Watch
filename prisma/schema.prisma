@@ -35,11 +35,11 @@ model order_details {
   product_id      Int?
   quantity        Int
   price           Int
-  products        products? @relation(fields: [product_id], references: [product_id], onUpdate: NoAction, map: "fk_product_id")
   orders          orders?   @relation(fields: [order_id], references: [order_id], onDelete: Cascade, onUpdate: NoAction, map: "order_details_ibfk_1")
+  products        products? @relation(fields: [product_id], references: [product_id], onUpdate: NoAction, map: "fk_product_id")
 
   @@index([product_id], map: "fk_product_id")
-  @@index([order_id], map: "order_id")
+  @@index([order_id], map: "fk_order_id")
 }
 
 model orders {
@@ -49,6 +49,7 @@ model orders {
   order_date       DateTime           @default(now()) @db.DateTime(0)
   status           orders_status
   total_amount     Int
+  productIDs       Json?              @default("[]")
   order_details    order_details[]
   companies        companies?         @relation(fields: [company_id], references: [company_id], onUpdate: NoAction, map: "fk_company_id")
   users            users              @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "orders_ibfk_1")

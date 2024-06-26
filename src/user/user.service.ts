@@ -122,6 +122,7 @@ export class UserService {
     return data;
   }
 
+  
   // Get user information
   async getMyInfo(userId: number): Promise<any> {
     const getUser = await this.prisma.users.findFirst({
